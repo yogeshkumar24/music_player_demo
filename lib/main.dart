@@ -1,259 +1,295 @@
-import 'dart:convert';
-
-import 'package:audioplayers/audioplayers.dart';
-import 'package:audioplayers/notifications.dart';
 import 'package:flutter/material.dart';
-import 'package:audio_service/audio_service.dart';
-import 'package:intl/intl.dart';
 import 'package:audio_manager/audio_manager.dart';
-import 'album.dart';
-import 'background_service/audioPlayerTask.dart';
 
-void _backgroundTaskEntrypoint() {
-  AudioServiceBackground.run(() => AudioPlayerTask());
-}
 
-void main() {
-  runApp(MyApp());
-}
+void main() => runApp(MyApp());
 
-class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
+class MyApp extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: AudioServiceWidget(child:MyHomePage()),
-    );
-  }
+  _MyAppState createState() => _MyAppState();
 }
 
-class MyHomePage extends StatefulWidget {
-  @override
-  _MyHomePageState createState() => _MyHomePageState();
-}
+class _MyAppState extends State<MyApp> {
 
-class _MyHomePageState extends State<MyHomePage> {
-  int timeProgress = 0;
-  int audioDuration = 0;
-  List<Track> trackLis = [];
-
-  int songNumber = 0;
-  AudioPlayer audioPlayer = AudioPlayer();
-  PlayerState playerState = PlayerState.PAUSED;
+  bool isPlaying = false;
+  Duration _duration;
+  Duration _position;
+  double _slider;
+  String _error;
+  num curIndex = 0;
+  PlayMode playMode = AudioManager.instance.playMode;
 
 
-  // start() =>
-  //     AudioService.start(backgroundTaskEntrypoint: _backgroundTaskEntrypoint);
-  //
-  // stop() => AudioService.stop();
-
-  List<Map<String, String>> list = [
+final list = [
     {
-      'track': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-      "name": "First Song"
+      "title": "network",
+      "desc": "First",
+      'url': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+      "coverUrl": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?ixid=MnwxMjA3fDB8MHxzZWFyY2h8MXx8bGl2ZSUyMG11c2ljfGVufDB8fDB8fA%3D%3D&ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60"
     },
     {
-      'track': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-      "name": "Sixth Song"
+      "title": "network",
+      "desc": "Second",
+      'url': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+      "coverUrl": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?ixid=MnwxMjA3fDB8MHxzZWFyY2h8MXx8bGl2ZSUyMG11c2ljfGVufDB8fDB8fA%3D%3D&ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60"
     },
     {
-      'track': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-      "name": "Second Song"
+      "title": "network",
+      "desc": "Third",
+      'url': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
+      "coverUrl": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?ixid=MnwxMjA3fDB8MHxzZWFyY2h8MXx8bGl2ZSUyMG11c2ljfGVufDB8fDB8fA%3D%3D&ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60"
     },
     {
-      'track': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3',
-      "name": "Third Song"
+      "title": "network",
+      "desc": "Fourth",
+      'url': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3',
+      "coverUrl": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?ixid=MnwxMjA3fDB8MHxzZWFyY2h8MXx8bGl2ZSUyMG11c2ljfGVufDB8fDB8fA%3D%3D&ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60"
     },
     {
-      'track': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3',
-      "name": "Fourth Song"
+      "title": "network",
+      "desc": "Fifth",
+      'url': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3',
+      "coverUrl": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?ixid=MnwxMjA3fDB8MHxzZWFyY2h8MXx8bGl2ZSUyMG11c2ljfGVufDB8fDB8fA%3D%3D&ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60"
     },
     {
-      'track': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3',
-      "name": "Fifth Song"
+      "title": "network",
+      "desc": "Sixth ",
+      'url': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3',
+      "coverUrl": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?ixid=MnwxMjA3fDB8MHxzZWFyY2h8MXx8bGl2ZSUyMG11c2ljfGVufDB8fDB8fA%3D%3D&ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60"
     },
 
   ];
 
-  List<Track> fetchSongs() {
-    List<Track> trackList = [];
-    list.forEach((element) {
-      trackList.add(Track.fromJson(element));
-    });
-    return trackList;
+  @override
+  void initState() {
+    super.initState();
+    setupAudio();
   }
 
   @override
-  void initState() {
+  void dispose() {
+    AudioManager.instance.release();
+    super.dispose();
+  }
 
-    trackLis = fetchSongs();
-    audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
-      setState(() {
-        playerState = state;
-      });
+  void setupAudio() {
+    List<AudioInfo> _list = [];
+    list.forEach((item) =>
+        _list.add(AudioInfo(item["url"],
+            title: item["title"],
+            desc: item["desc"],
+            coverUrl: item["coverUrl"],
+          )));
+
+    AudioManager.instance.audioList = _list;
+    AudioManager.instance.intercepter = true;
+    AudioManager.instance.play(auto: false);
+
+    AudioManager.instance.onEvents((events, args) {
+      print("$events, $args");
+      switch (events) {
+        case AudioManagerEvents.start:
+          print(
+              "start load data callback, curIndex is ${AudioManager.instance
+                  .curIndex}");
+          _position = AudioManager.instance.position;
+          _duration = AudioManager.instance.duration;
+          _slider = 0;
+          setState(() {});
+          break;
+        case AudioManagerEvents.ready:
+          print("ready to play");
+          _error = null;
+
+          _position = AudioManager.instance.position;
+          _duration = AudioManager.instance.duration;
+          setState(() {});
+          // if you need to seek times, must after AudioManagerEvents.ready event invoked
+          // AudioManager.instance.seekTo(Duration(seconds: 10));
+          break;
+        case AudioManagerEvents.seekComplete:
+          _position = AudioManager.instance.position;
+          _slider = _position.inMilliseconds / _duration.inMilliseconds;
+          setState(() {});
+          print("seek event is completed. position is [$args]/ms");
+          break;
+        case AudioManagerEvents.buffering:
+          print("buffering $args");
+          break;
+        case AudioManagerEvents.playstatus:
+          isPlaying = AudioManager.instance.isPlaying;
+          setState(() {});
+          break;
+        case AudioManagerEvents.timeupdate:
+          _position = AudioManager.instance.position;
+          _slider = _position.inMilliseconds / _duration.inMilliseconds;
+          setState(() {});
+          AudioManager.instance.updateLrc(args["position"].toString());
+          break;
+        case AudioManagerEvents.error:
+          _error = args;
+          setState(() {});
+          break;
+        case AudioManagerEvents.ended:
+          AudioManager.instance.next();
+          break;
+        default:
+          break;
+      }
     });
-
-    audioPlayer.onDurationChanged.listen((Duration duration) {
-
-      setState(() {
-        audioDuration = duration.inMilliseconds;
-      });
-    });
-
-    audioPlayer.setUrl(trackLis[songNumber].track);
-
-    audioPlayer.onAudioPositionChanged.listen((Duration duration) {
-      setState(() {
-        timeProgress = duration.inMilliseconds;
-      });
-    });
-    //testiingggg..
-    super.initState();
   }
 
-  playMusic(String url) async {
-    await audioPlayer.play(url);
-  }
 
-  pauseMusic() async {
-    await audioPlayer.pause();
-  }
-
-  Widget slider() {
-    return Container(
-      child: Slider.adaptive(
-        value: (timeProgress / 1000),
-        max: (audioDuration / 1000),
-        onChanged: (value) {
-          seekToSec(value.toInt());
-        },
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Music Player"),
-      ),
-      body: Container(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            ListView.builder(
-                itemCount: trackLis.length,
-                shrinkWrap: true,
-                itemBuilder: (context, index) {
-                  return InkWell(
-                    onTap: () {
-                      setState(() {
-                        songNumber = index;
-                        audioPlayer.setUrl(trackLis[index].track);
-                        playMusic(trackLis[index].track);
-                      });
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(
+          title: const Text('audio player'),
+        ),
+        body: Center(
+          child: Column(
+            children: <Widget>[
+
+              Expanded(
+                child: ListView.separated(
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        title: Text(list[index]["title"],
+                            style: TextStyle(fontSize: 18)),
+                        subtitle: Text(list[index]["desc"]),
+                        onTap: () => AudioManager.instance.play(index: index),
+                      );
                     },
-                    child: Container(
-                        alignment: Alignment.center,
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text("${trackLis[index].name}"),
-                              ],
-                            ),
-                            SizedBox(
-                              height: 20,
-                            ),
-                            Divider()
-                          ],
-                        ),),
-                  );
-                }),
-            buildRow(),
-            buildButtons()
-          ],
+                    separatorBuilder: (BuildContext context, int index) =>
+                        Divider(),
+                    itemCount: list.length),
+              ),
+              Center(
+                  child: Text(_error != null
+                      ? _error
+                      : "${AudioManager.instance.info
+                      .title}"
+                      " ${AudioManager.instance.info
+        .desc}")),
+              bottomPanel()
+            ],
+          ),
         ),
       ),
     );
   }
 
-
-   buildButtons()  {
-    return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              IconButton(
-                  onPressed: ()  {
-                    setState(() {
-                      if(songNumber > 0){
-                      audioPlayer.setUrl(trackLis[songNumber--].track);
-                    }else{
-                        print("This is the first song");
-                      }});
-                  },
-                  icon: Icon(Icons.skip_previous)),
-              IconButton(
-                  onPressed: () {
-                    setState(() {
-                      playerState == PlayerState.PLAYING
-                          ? pauseMusic()
-                          : playMusic(trackLis[songNumber].track);
-                    });
-                  },
-                  icon: Icon(playerState == PlayerState.PAUSED
-                      ? Icons.play_arrow
-                      : Icons.pause)),
-
-              IconButton(
-                  onPressed: ()  {
-           setState(() {
-             if(songNumber < trackLis.length-1){
-                audioPlayer.setUrl(trackLis[songNumber++].track);
+  Widget bottomPanel() {
+    return Column(children: <Widget>[
+      Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16),
+        child: songProgress(context),
+      ),
+      Container(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: <Widget>[
+            IconButton(
+                iconSize: 36,
+                icon: Icon(
+                  Icons.skip_previous,
+                  color: Colors.black,
+                ),
+                onPressed: () => AudioManager.instance.previous()),
+            IconButton(
+              onPressed: () async {
+                bool playing = await AudioManager.instance.playOrPause();
+                print("await -- $playing");
+                if(playing){
+                  await AudioManager.instance.play();
+                }else{
+                  await AudioManager.instance.toPause();
                 }
-           else{
-             print("This is last song");
-             }});
-            },
-                  icon: Icon(Icons.skip_next)),
-            ],
-          );
+              },
+              padding: const EdgeInsets.all(0.0),
+              icon: Icon(
+                isPlaying ? Icons.pause : Icons.play_arrow,
+                size: 48.0,
+                color: Colors.black,
+              ),
+            ),
+            IconButton(
+                iconSize: 36,
+                icon: Icon(
+                  Icons.skip_next,
+                  color: Colors.black,
+                ),
+                onPressed: () => AudioManager.instance.next()),
+          ],
+        ),
+      ),
+    ]);
   }
 
-  Column buildRow() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(trackLis[songNumber].name),
-        Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(getTime(timeProgress)),
-                  SizedBox(width: 20),
-                  Container(width: 250, child: slider()),
-                  SizedBox(width: 20),
-                  Text(getTime(audioDuration))
-                ],
-              ),
+  Widget songProgress(BuildContext context) {
+    var style = TextStyle(color: Colors.black);
+    return Row(
+      children: <Widget>[
+        Text(
+          _formatDuration(_position),
+          style: style,
+        ),
+        Expanded(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 5),
+            child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 2,
+                  thumbColor: Colors.blueAccent,
+                  overlayColor: Colors.blue,
+                  thumbShape: RoundSliderThumbShape(
+                    disabledThumbRadius: 5,
+                    enabledThumbRadius: 5,
+                  ),
+                  overlayShape: RoundSliderOverlayShape(
+                    overlayRadius: 10,
+                  ),
+                  activeTrackColor: Colors.blueAccent,
+                  inactiveTrackColor: Colors.grey,
+                ),
+                child: Slider(
+                  value: _slider ?? 0,
+                  onChanged: (value) {
+                    setState(() {
+                      _slider = value;
+                    });
+                  },
+                  onChangeEnd: (value) {
+                    if (_duration != null) {
+                      Duration msec = Duration(
+                          milliseconds:
+                          (_duration.inMilliseconds * value).round());
+                      AudioManager.instance.seekTo(msec);
+                    }
+                  },
+                )),
+          ),
+        ),
+        Text(
+          _formatDuration(_duration),
+          style: style,
+        ),
       ],
     );
   }
 
-  void seekToSec(int sec) {
-    Duration duration = Duration(seconds: sec);
-
-    audioPlayer.seek(duration);
-  }
-
-  getTime(millisecond){
-   var d = Duration(milliseconds: millisecond);
-   return "${d.toString().substring(2,7)}";
-
+  String _formatDuration(Duration d) {
+    if (d == null) return "--:--";
+    int minute = d.inMinutes;
+    int second = (d.inSeconds > 60) ? (d.inSeconds % 60) : d.inSeconds;
+    String format = ((minute < 10) ? "0$minute" : "$minute") +
+        ":" +
+        ((second < 10) ? "0$second" : "$second");
+    return format;
   }
 }
+
+
